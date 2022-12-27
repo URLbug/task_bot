@@ -6,7 +6,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import json
 import io
 
-from context import Orders, Order_Redacts_Contacts, Order_Redacts_GPS, Order_Redacts_Sums_And_Baskets, Order_Delete
+from context import Orders, Order_Redacts_Contacts, Order_Redacts_GPS, Order_Redacts_Sums_And_Baskets, Order_Delete, Supports
 from database import User, Order, session
 
 
@@ -239,6 +239,47 @@ async def order_contacts(m: types.Message, state: FSMContext):
         await m.reply('try again')
 
 # Supports
+@dp.callback_query_handler(text='supports')
+async def supports(call: types.CallbackQuery):
+
+    markup = InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton('Помощь',callback_data='help'),
+        types.InlineKeyboardButton('Главное меню', callback_data='menu')
+    )
+
+    await call.message.reply('help menu', reply_markup=markup)
+
+
+@dp.callback_query_handler(text='help',state=None)
+async def support_help(call: types.CallbackQuery, state=FSMContext):
+    await call.message.reply('Напишите Ваш телефон или Ваш соц.сеть при помощи которой с Вами можно лего связаться')
+    
+    await Supports.help.set()
+
+@dp.message_handler(state=Supports.help)
+async def support_help_2(m: types.Message, state=FSMContext):
+
+    try:
+        text = m.text
+
+        markup = InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
+
+        await m.reply('Отлично! Ваша заявка принята.\nДождитесь пока с Вами свяжутся',reply_markup=markup)
+        
+        await bot.send_message(config['CHATS'], f'Поступила жалоба от @{m.from_user.username}:\nОтправитель хочет с Вами связаться через номер телефона/соц.сеть:\n{text}')
+        
+        await state.finish()
+    except:
+        await m.reply('Неудалось отправить сообщение.Попробуйте снова')
+
+@dp.callback_query_handler(text='about_our')
+async def about_our(call: types.CallbackQuery):
+    markup = InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
+
+    await call.message.reply('about our',reply_markup=markup)
 
 
 # Admin panel and Data Base
@@ -300,13 +341,18 @@ async def admin_panel_update_order_GPS(m: types.Message):
 async def admin_panel_update_order_GPS_2(m: types.Message, state: FSMContext):
     if str(m.chat.id) == config['CHATS']:
 
-        data = m.text.split(',')
+        try:
+            data = m.text.split(',')
 
-        Order.update_count_offers_gps(int(data[0]),data[1])
+            Order.update_count_offers_gps(int(data[0]),data[1])
 
-        await m.reply('Готова! Геолокация изменина!')
+            await m.reply('Готова! Геолокация изменина!')
 
-        await state.finish()
+            await state.finish()
+        except:
+            await m.reply('Не удалось изменить геолокацию. Попробуйте изменить позже')
+            
+            await state.finish()
 
 
 @dp.message_handler(text='Изменить контакты заказчика', state=None)
@@ -321,13 +367,18 @@ async def admin_panel_update_order_contacts(m: types.Message):
 async def admin_panel_update_order_contacts_2(m: types.Message, state: FSMContext):
     if str(m.chat.id) == config['CHATS']:
 
-        data = m.text.split(',')
+        try:
+            data = m.text.split(',')
 
-        Order.update_count_offers_contacts(int(data[0]),data[1])
+            Order.update_count_offers_contacts(int(data[0]),data[1])
 
-        await m.reply('Готова! Контакты успешно изменены!')
+            await m.reply('Готова! Контакты успешно изменены!')
 
-        await state.finish()
+            await state.finish()
+        except:
+            await m.reply('Не удалось изменить контакты. Попробуйте изменить позже')
+            
+            await state.finish()
 
 
 @dp.message_handler(text='Изменить сумму и цену заказа', state=None)
@@ -342,13 +393,18 @@ async def admin_panel_update_order_sums_and_sum_baskets(m: types.Message):
 async def admin_panel_update_order_sums_and_sum_baskets_2(m: types.Message, state: FSMContext):
     if str(m.chat.id) == config['CHATS']:
 
-        data = m.text.split(',')
+        try:
+            data = m.text.split(',')
 
-        Order.update_count_offers_sums_and_sum_basket(int(data[0]),int(data[1]),data[2])
+            Order.update_count_offers_sums_and_sum_basket(int(data[0]),int(data[1]),data[2])
 
-        await m.reply('Готова! Сумма и цена заказа успешно изменены!')
+            await m.reply('Готова! Сумма и цена заказа успешно изменены!')
 
-        await state.finish()
+            await state.finish()
+        except:
+            await m.reply('Не удалось изменить сумму и цену заказа. Попробуйте изменить позже')
+            
+            await state.finish()
 
 
 @dp.message_handler(text='Удалить заказ', state=None)
@@ -361,7 +417,7 @@ async def admin_panel_delete_order(m: types.Message):
 
 
 @dp.message_handler(state=Order_Delete.delete)
-async def admin_panel_delete_order_2(m: types.Message):
+async def admin_panel_delete_order_2(m: types.Message, state: FSMContext):
     if str(m.chat.id) == config['CHATS']:
 
         try:
@@ -369,8 +425,12 @@ async def admin_panel_delete_order_2(m: types.Message):
             session.commit()
             
             await m.reply('Готово! Заказ удален!')
+            
+            await state.finsh()
         except:
             await m.reply('Не удалось удалить заказ!')
+
+            await state.finsh()
 
 
 if __name__ == '__main__':

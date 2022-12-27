@@ -21,3 +21,7 @@ class Order_Redacts_Sums_And_Baskets(StatesGroup):
 class Order_Delete(StatesGroup):
 
     delete = State()
+
+class Supports(StatesGroup):
+
+    help = State()
