@@ -47,8 +47,8 @@ class User(Base):
   
   def update_count_offers(id_to_update, new_desc):
     try:
-        query = session.query(User).filter(User.contacts == id_to_update).\
-            update({User.count_offers: new_desc}, synchronize_session=False)
+        query = session.query(User).filter(User.id == id_to_update).\
+            update({User.id: new_desc}, synchronize_session=False)
         session.commit()
     except:
         session.rollback()
@@ -64,10 +64,30 @@ class Order(Base):
   contacts = Column(String)
   gps = Column(String)
   
-  def update_count_offers(id_to_update, new_desc):
+  def update_count_offers_gps(id_to_update, new_desc):
     try:
-        query = session.query(Order).filter(Order.GPS == id_to_update).\
-            update({Order.count_offers: new_desc}, synchronize_session=False)
+        query = session.query(Order).filter(Order.id == id_to_update).\
+            update({Order.gps: new_desc}, synchronize_session=False)
+        session.commit()
+    except:
+        session.rollback()
+    
+  def update_count_offers_contacts(id_to_update, new_desc):
+    try:
+        query = session.query(Order).filter(Order.id == id_to_update).\
+            update({Order.contacts: new_desc}, synchronize_session=False)
+        session.commit()
+    except:
+        session.rollback()
+  
+  def update_count_offers_sums_and_sum_basket(id_to_update, new_desc, new_desc_2):
+    try:
+        query = session.query(Order).filter(Order.id == id_to_update).\
+            update({Order.sums: new_desc}, synchronize_session=False)
+        
+        query = session.query(Order).filter(Order.id == id_to_update).\
+            update({Order.sum_basket: new_desc_2}, synchronize_session=False)
+        
         session.commit()
     except:
         session.rollback()

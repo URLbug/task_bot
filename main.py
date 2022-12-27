@@ -6,7 +6,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import json
 import io
 
-from context import Orders
+from context import Orders, Order_Redacts_Contacts, Order_Redacts_GPS, Order_Redacts_Sums_And_Baskets, Order_Delete
 from database import User, Order, session
 
 
@@ -23,10 +23,19 @@ DATA = {'sum_baskets': 0}
 @dp.message_handler(commands=['start'])
 async def start(m: types.Message):
 
-    markup = InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
+    if str(m.chat.id) == config['CHATS']:
+        build = ReplyKeyboardMarkup(resize_keyboard=True)
+        build.add(types.KeyboardButton('Изменить заказ'),
+        types.KeyboardButton('База Данных Клиентов'),
+        types.KeyboardButton('База Данных Заказов')
+        )
 
-    await m.reply('Start', reply_markup=markup)
+        await m.reply('admin panel', reply_markup=build)
+    else:
+        markup = InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
+
+        await m.reply('Start', reply_markup=markup)
 
 # Menu
 @dp.callback_query_handler(text='menu')
@@ -228,7 +237,141 @@ async def order_contacts(m: types.Message, state: FSMContext):
     
     else:
         await m.reply('try again')
-   
+
+# Supports
+
+
+# Admin panel and Data Base
+
+# @dp.message_handler(commands=['id'])
+# async def admin_panel_chat_id(m: types.Message):
+#     await m.reply(m.chat.id)
+
+@dp.message_handler(text='База Данных Клиентов')
+async def admin_panel_data_base_user(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+        texts = []
+
+        for x in session.query(User.id).distinct():
+            id = session.query(User).filter(User.id == x.id) 
+
+            for i in id:
+                texts.append(f'ID: {i.id}; Контакты: {i.contacts}; Сумма заказов: {i.sums}; Геолокация: {i.gps}')
+
+        await m.reply('\n\n'.join(texts))
+
+@dp.message_handler(text='База Данных Заказов')
+async def admin_panel_data_base_order(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+        texts = []
+
+        for x in session.query(Order.id).distinct():
+            id = session.query(Order).filter(Order.id == x.id) 
+
+            for i in id:
+                texts.append(f'ID: {i.id}; Контакты: {i.contacts}; Сумма заказов: {i.sums}; Стоимость заказа: {i.sum_basket} ,Геолокация: {i.gps}')
+
+        await m.reply('\n\n'.join(texts))
+
+# Admin panel redactors
+
+@dp.message_handler(text='Изменить заказ')
+async def admin_panel_update_order(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+        build = ReplyKeyboardMarkup(resize_keyboard=True)
+        build.add(types.KeyboardButton('Изменить геолокацию заказчика'),
+        types.KeyboardButton('Изменить контакты заказчика'),
+        types.KeyboardButton('Изменить сумму и цену заказа'),
+        types.KeyboardButton('Удалить заказ')
+        )
+        
+        await m.reply('Изменить...', reply_markup=build)
+
+
+@dp.message_handler(text='Изменить геолокацию заказчика', state=None)
+async def admin_panel_update_order_GPS(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+
+        await m.reply('Напишите ID и новую геолокацию через запитую. Пример -> 12,ул.Московская 16Б и т.д.')
+
+        await Order_Redacts_GPS.GPS.set()
+
+@dp.message_handler(state=Order_Redacts_GPS.GPS)
+async def admin_panel_update_order_GPS_2(m: types.Message, state: FSMContext):
+    if str(m.chat.id) == config['CHATS']:
+
+        data = m.text.split(',')
+
+        Order.update_count_offers_gps(int(data[0]),data[1])
+
+        await m.reply('Готова! Геолокация изменина!')
+
+        await state.finish()
+
+
+@dp.message_handler(text='Изменить контакты заказчика', state=None)
+async def admin_panel_update_order_contacts(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+
+        await m.reply('Напишите ID и новые контакты через запитую. Пример -> 12,telegram twiter disсord и т.д.')
+
+        await Order_Redacts_Contacts.contacts.set()
+
+@dp.message_handler(state=Order_Redacts_Contacts.contacts)
+async def admin_panel_update_order_contacts_2(m: types.Message, state: FSMContext):
+    if str(m.chat.id) == config['CHATS']:
+
+        data = m.text.split(',')
+
+        Order.update_count_offers_contacts(int(data[0]),data[1])
+
+        await m.reply('Готова! Контакты успешно изменены!')
+
+        await state.finish()
+
+
+@dp.message_handler(text='Изменить сумму и цену заказа', state=None)
+async def admin_panel_update_order_sums_and_sum_baskets(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+
+        await m.reply('Напишите ID и новую сумму и цену заказа через запитую. Пример -> 12,15,1500')
+
+        await Order_Redacts_Sums_And_Baskets.sums_and_baskets_sums.set()
+
+@dp.message_handler(state=Order_Redacts_Sums_And_Baskets.sums_and_baskets_sums)
+async def admin_panel_update_order_sums_and_sum_baskets_2(m: types.Message, state: FSMContext):
+    if str(m.chat.id) == config['CHATS']:
+
+        data = m.text.split(',')
+
+        Order.update_count_offers_sums_and_sum_basket(int(data[0]),int(data[1]),data[2])
+
+        await m.reply('Готова! Сумма и цена заказа успешно изменены!')
+
+        await state.finish()
+
+
+@dp.message_handler(text='Удалить заказ', state=None)
+async def admin_panel_delete_order(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+        
+        await m.reply('Введите ID заказа для того чтобы его удалить')
+
+        await Order_Delete.delete.set()
+
+
+@dp.message_handler(state=Order_Delete.delete)
+async def admin_panel_delete_order_2(m: types.Message):
+    if str(m.chat.id) == config['CHATS']:
+
+        try:
+            session.query(Order).filter(Order.id == int(m.text)).delete()
+            session.commit()
+            
+            await m.reply('Готово! Заказ удален!')
+        except:
+            await m.reply('Не удалось удалить заказ!')
+
 
 if __name__ == '__main__':
     executor.start_polling(dp,skip_updates=True)
