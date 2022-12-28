@@ -30,12 +30,12 @@ async def start(m: types.Message):
         types.KeyboardButton('База Данных Заказов')
         )
 
-        await m.reply('admin panel', reply_markup=build)
+        await m.reply('Добро пожаловать в админ панель', reply_markup=build)
     else:
         markup = InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
 
-        await m.reply('Start', reply_markup=markup)
+        await m.reply("Добро пожаловать в чат-бота для заказов питьевых кокосов\nЧтобы у нас что-нибудь заказать нажмите на кнопку 'Главное меню'", reply_markup=markup)
 
 # Menu
 @dp.callback_query_handler(text='menu')
@@ -50,7 +50,7 @@ async def menu(call: types.CallbackQuery):
     )
 
 
-    await call.message.reply('Menu', reply_markup=markup)
+    await call.message.reply('Добро пожаловать в главное меню.\nСнизу есть кнопки которые вас видут на "Корзину", "Ассортимент", "Тех. поддержка" и "О нас"', reply_markup=markup)
 
 # Assorts groups
 @dp.callback_query_handler(text_startswith='minus')
@@ -93,11 +93,11 @@ async def pluse(call: types.CallbackQuery):
 async def assorts(call: types.CallbackQuery):
 
     markup = InlineKeyboardMarkup().add(
-            types.InlineKeyboardButton("-", callback_data=f"minus:1"),
-            types.InlineKeyboardButton("1", callback_data="null"),
-            types.InlineKeyboardButton("+", callback_data=f"pluse:1"),
-            types.InlineKeyboardButton("Заказать", callback_data=f"order:1"),
-            types.InlineKeyboardButton("Добавить в корзину",callback_data=f"add_to_baskets:1")
+            types.InlineKeyboardButton("-", callback_data=f"minus:10"),
+            types.InlineKeyboardButton("10", callback_data="null"),
+            types.InlineKeyboardButton("+", callback_data=f"pluse:10"),
+            types.InlineKeyboardButton("Заказать", callback_data=f"order:10"),
+            types.InlineKeyboardButton("Добавить в корзину",callback_data=f"add_to_baskets:10")
             )
     markup.add(types.InlineKeyboardButton('Главное меню',callback_data='menu'))
 
@@ -184,7 +184,7 @@ async def baskets(call: types.CallbackQuery):
         
         markup.add(types.InlineKeyboardButton('Главное меню',callback_data='menu'))
 
-        await call.message.reply('baskets', reply_markup=markup)
+        await call.message.reply('Ваша корзина пока пуста...', reply_markup=markup)
 
 # Order groups
 @dp.callback_query_handler(text_startswith='order', state=None)
@@ -195,7 +195,7 @@ async def order(call: types.CallbackQuery):
     ORDERS["sum_baskets"] = str(data*100)
     ORDERS["sum"] = data
 
-    await call.message.reply('GPS')
+    await call.message.reply('Введите Ваш адрес или ключ Вашего прожевания.\nКлюч можно достать тут -> https://www.google.ru/maps/')
 
     await Orders.GPS.set()
 
@@ -205,12 +205,12 @@ async def order_gps(m: types.Message):
     if m.text:
         ORDERS["GPS"] = m.text
 
-        await m.reply('contacts')
+        await m.reply('Введите Вашу соц.сеть или номер телефона для того чтобы связаться с Вами.')
 
         await Orders.next()
     
     else:
-        await m.reply('try again')
+        await m.reply('Попробуйте снова')
 
 @dp.message_handler(state=Orders.contacts)
 async def order_contacts(m: types.Message, state: FSMContext):
@@ -231,12 +231,12 @@ async def order_contacts(m: types.Message, state: FSMContext):
         session.commit()
         session.close()
 
-        await m.reply('Goal', reply_markup=markup)
+        await m.reply('Отлично Ваш заказ принят в работу. Ждите пока с Вами свяжуться!', reply_markup=markup)
 
         await state.finish()
     
     else:
-        await m.reply('try again')
+        await m.reply('Попробуйте снова')
 
 # Supports
 @dp.callback_query_handler(text='supports')
@@ -248,12 +248,12 @@ async def supports(call: types.CallbackQuery):
         types.InlineKeyboardButton('Главное меню', callback_data='menu')
     )
 
-    await call.message.reply('help menu', reply_markup=markup)
+    await call.message.reply('Если Вы хотите связатся с нами то нажмите на "Помощь"', reply_markup=markup)
 
 
 @dp.callback_query_handler(text='help',state=None)
 async def support_help(call: types.CallbackQuery, state=FSMContext):
-    await call.message.reply('Напишите Ваш телефон или Ваш соц.сеть при помощи которой с Вами можно лего связаться')
+    await call.message.reply('Напишите Ваш телефон или Вашу соц.сеть при помощи которой с Вами можно легко связаться')
     
     await Supports.help.set()
 
@@ -266,20 +266,20 @@ async def support_help_2(m: types.Message, state=FSMContext):
         markup = InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
 
-        await m.reply('Отлично! Ваша заявка принята.\nДождитесь пока с Вами свяжутся',reply_markup=markup)
+        await m.reply('Отлично! Ваша заявка принята.\nДождитесь пока с Вами свяжеться нашь админ',reply_markup=markup)
         
         await bot.send_message(config['CHATS'], f'Поступила жалоба от @{m.from_user.username}:\nОтправитель хочет с Вами связаться через номер телефона/соц.сеть:\n{text}')
         
         await state.finish()
     except:
-        await m.reply('Неудалось отправить сообщение.Попробуйте снова')
+        await m.reply('Неудалось отправить сообщение. Попробуйте снова')
 
 @dp.callback_query_handler(text='about_our')
 async def about_our(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('Главное меню', callback_data='menu'))
 
-    await call.message.reply('about our',reply_markup=markup)
+    await call.message.reply('О нас',reply_markup=markup)
 
 
 # Admin panel and Data Base
